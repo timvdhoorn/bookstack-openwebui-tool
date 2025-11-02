@@ -1,12 +1,11 @@
 """
 title: BookStack Tool
-author: labels-en-meer
+author: timvdhoorn
 description: Search BookStack and automatically retrieve full page content. The AI gets direct access to complete documentation.
 version: 1.2.0
 requirements: requests
 """
 
-import os
 import html
 import re
 import requests

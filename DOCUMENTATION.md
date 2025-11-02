@@ -1,7 +1,7 @@
 # BookStack Tool for Open WebUI
 
 **Version:** 1.2.0
-**Author:** labels-en-meer
+**Author:** timvdhoorn
 
 ## 📖 Description
 
@@ -254,4 +254,4 @@ GPLv3
 
 - **Open WebUI** - Platform for LLM interfaces
 - **BookStack** - Open-source documentation platform
-- **labels-en-meer** - Tool author
+- **timvdhoorn** - Tool author

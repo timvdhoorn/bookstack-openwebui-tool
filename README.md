@@ -32,16 +32,6 @@ A powerful integration tool that connects [BookStack](https://www.bookstackapp.c
    - `BOOKSTACK_TOKEN_ID`: API Token ID from BookStack
    - `BOOKSTACK_TOKEN_SECRET`: API Token Secret
 
-### 3. Use
-
-```
-Search for "installation guide"
-```
-
-```
-Get page 42
-```
-
 ## 📖 Documentation
 
 For detailed documentation, see [DOCUMENTATION.md](DOCUMENTATION.md)
@@ -49,16 +39,20 @@ For detailed documentation, see [DOCUMENTATION.md](DOCUMENTATION.md)
 ## 🔧 API Methods
 
 ### `search(query, max_pages=4)`
+
 Search BookStack and automatically retrieve full content of the most relevant pages.
 
 **Parameters:**
+
 - `query` (str): Search term
 - `max_pages` (int): Maximum pages to retrieve (default: 4)
 
 ### `get_page(page_id, format="markdown")`
+
 Retrieve a specific page by ID.
 
 **Parameters:**
+
 - `page_id` (int): BookStack page ID
 - `format` (str): Output format - `"markdown"`, `"text"`, or `"html"`
 
@@ -96,9 +90,10 @@ This project is licensed under the GNU General Public License v3.0 - see the [LI
 ## 📞 Support
 
 For issues or questions:
+
 - Check [DOCUMENTATION.md](DOCUMENTATION.md) for detailed troubleshooting
 - Open an issue on GitHub
-- Contact: labels-en-meer
+- Contact: timvdhoorn
 
 ---
 
