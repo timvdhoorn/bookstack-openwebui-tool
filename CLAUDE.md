@@ -30,7 +30,7 @@ The tool is implemented as a single Python file with three main classes:
    - **Important**: Must be a nested class for Open WebUI GUI integration
 
 3. **`Tools`**: Main tool class with async methods
-   - `search(query, max_pages=2)`: Searches BookStack and auto-fetches full page content
+   - `search(query, max_pages=4)`: Searches BookStack and auto-fetches full page content
    - `get_page(page_id, format="markdown")`: Retrieves single page by ID
    - `_optimize_query()`: Removes stopwords for better search results
    - All methods support `__event_emitter__` for status updates and citations
@@ -68,7 +68,7 @@ python3 test_valves_structure.py
 
 1. Upload `bookstack_tool.py` via Settings → Tools
 2. Configure Valves with BookStack credentials
-3. Test with: "Zoek naar [query]" or "Haal pagina [id] op"
+3. Test with: "Search for [query]" or "Get page [id]"
 
 ### Manual API Testing
 
@@ -142,5 +142,5 @@ Minimum required BookStack permissions:
 
 ## Documentation Files
 
-- **`README.md`**: User-facing documentation (Dutch) with installation and usage instructions
+- **`README.md`**: User-facing documentation with installation and usage instructions
 - **`CHANGELOG.md`**: Version history and migration notes

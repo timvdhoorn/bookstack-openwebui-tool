@@ -1,7 +1,7 @@
 """
 title: BookStack Tool
 author: labels-en-meer
-description: Zoekt in BookStack en haalt automatisch volledige pagina-inhoud op. De AI krijgt direct toegang tot complete documentatie.
+description: Search BookStack and automatically retrieve full page content. The AI gets direct access to complete documentation.
 version: 1.2.0
 requirements: requests
 """
@@ -15,7 +15,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 
-# ---- Client met Session + retries ----
+# ---- Client with Session + retries ----
 class BookStackClientRequestFailedError(ConnectionError):
     def __init__(self, status: int, error: str) -> None:
         self.status_code = status
@@ -94,7 +94,7 @@ class Tools:
         """Configuration for BookStack API access"""
         BOOKSTACK_URL: str = Field(
             default="",
-            description="BookStack base URL (zonder trailing slash)",
+            description="BookStack base URL (without trailing slash)",
         )
         BOOKSTACK_TOKEN_ID: str = Field(
             default="",
@@ -112,17 +112,17 @@ class Tools:
         self.citation = False
 
     def _client(self) -> BookStackApiClient:
-        """Maak een BookStack client met de valves configuratie"""
-        # Valideer of de configuratie is ingesteld
+        """Create a BookStack client with the valves configuration"""
+        # Validate that configuration is set
         if not self.valves.BOOKSTACK_URL:
             raise ValueError(
-                "BOOKSTACK_URL is niet ingesteld. "
-                "Ga naar Settings → Tools → BookStack Tool en vul de Valves in."
+                "BOOKSTACK_URL is not configured. "
+                "Go to Settings → Tools → BookStack Tool and fill in the Valves."
             )
         if not self.valves.BOOKSTACK_TOKEN_ID or not self.valves.BOOKSTACK_TOKEN_SECRET:
             raise ValueError(
-                "BookStack API credentials zijn niet ingesteld. "
-                "Ga naar Settings → Tools → BookStack Tool en vul BOOKSTACK_TOKEN_ID en BOOKSTACK_TOKEN_SECRET in."
+                "BookStack API credentials are not configured. "
+                "Go to Settings → Tools → BookStack Tool and fill in BOOKSTACK_TOKEN_ID and BOOKSTACK_TOKEN_SECRET."
             )
 
         return BookStackApiClient(
@@ -132,24 +132,24 @@ class Tools:
         )
 
     def _optimize_query(self, query: str) -> str:
-        """Optimaliseer de zoekquery voor BookStack door stopwoorden te verwijderen"""
-        # Nederlandse en Engelse stopwoorden die weinig toevoegen aan de search
-        stopwoorden = {
+        """Optimize the search query for BookStack by removing stopwords"""
+        # Dutch and English stopwords that add little value to the search
+        stopwords = {
             'welke', 'wat', 'is', 'zijn', 'er', 'de', 'het', 'een', 'van', 'in',
             'voor', 'op', 'aan', 'met', 'te', 'hoe', 'kan', 'moet', 'waar',
             'which', 'what', 'is', 'are', 'the', 'a', 'an', 'of', 'in', 'for',
             'on', 'at', 'to', 'how', 'can', 'should', 'where', 'there'
         }
 
-        # Split query in woorden en filter stopwoorden
-        woorden = query.lower().split()
-        belangrijke_woorden = [w for w in woorden if w not in stopwoorden and len(w) > 2]
+        # Split query into words and filter stopwords
+        words = query.lower().split()
+        important_words = [w for w in words if w not in stopwords and len(w) > 2]
 
-        # Als we te weinig woorden overhouden, gebruik originele query
-        if len(belangrijke_woorden) < 1:
+        # If too few words remain, use original query
+        if len(important_words) < 1:
             return query
 
-        return " ".join(belangrijke_woorden)
+        return " ".join(important_words)
 
     async def search(
         self,
@@ -158,18 +158,18 @@ class Tools:
         __event_emitter__: Optional[Callable[[dict], None]] = None,
     ) -> str:
         """
-        Zoek in BookStack en haal automatisch de volledige inhoud op van de meest relevante pagina's.
-        De AI krijgt direct toegang tot de volledige content om vragen mee te beantwoorden.
+        Search BookStack and automatically retrieve full content of the most relevant pages.
+        The AI gets direct access to the full content to answer questions.
 
         Args:
-            query: Zoekterm
-            max_pages: Maximum aantal pagina's om volledig op te halen (standaard: 4)
+            query: Search term
+            max_pages: Maximum number of pages to fully retrieve (default: 4)
         """
-        # Optimaliseer de query voor betere resultaten
+        # Optimize the query for better results
         optimized_query = self._optimize_query(query)
 
         if __event_emitter__:
-            search_msg = f"Zoeken naar: {optimized_query}" if optimized_query != query else "Zoeken in BookStack..."
+            search_msg = f"Searching for: {optimized_query}" if optimized_query != query else "Searching BookStack..."
             await __event_emitter__(
                 {
                     "type": "status",
@@ -177,7 +177,7 @@ class Tools:
                 }
             )
 
-        # Stap 1: Zoek naar relevante pagina's
+        # Step 1: Search for relevant pages
         c = self._client()
         res = c.get("/search", {"query": optimized_query}).get("data", [])[:5]
 
@@ -186,25 +186,25 @@ class Tools:
                 await __event_emitter__(
                     {
                         "type": "status",
-                        "data": {"description": "Geen resultaten gevonden", "done": True},
+                        "data": {"description": "No results found", "done": True},
                     }
                 )
 
-            no_results_msg = f"**Geen resultaten gevonden** voor '{query}'"
+            no_results_msg = f"**No results found** for '{query}'"
             if optimized_query != query:
-                no_results_msg += f"\n\n_Gezocht op: '{optimized_query}'_"
-                no_results_msg += f"\n\n💡 **Tip:** Probeer een andere zoekterm of gebruik specifieke trefwoorden uit de documentatie."
+                no_results_msg += f"\n\n_Searched for: '{optimized_query}'_"
+                no_results_msg += f"\n\n💡 **Tip:** Try a different search term or use specific keywords from the documentation."
 
             return no_results_msg
 
-        # Stap 2: Filter alleen pages (books/chapters bevatten geen directe content)
+        # Step 2: Filter only pages (books/chapters contain no direct content)
         pages = [r for r in res if r.get("type") == "page"][:max_pages]
 
         if not pages:
-            # Geen pages gevonden, toon alleen zoekresultaten
-            output_lines = ["**Geen pagina's gevonden, maar wel deze resultaten:**\n"]
+            # No pages found, show only search results
+            output_lines = ["**No pages found, but these results were found:**\n"]
             for i, r in enumerate(res, 1):
-                title = r.get("name", "Geen titel")
+                title = r.get("name", "No title")
                 url = r.get("url", "")
                 item_type = r.get("type", "unknown")
                 item_id = r.get("id", "")
@@ -215,13 +215,13 @@ class Tools:
                 await __event_emitter__(
                     {
                         "type": "status",
-                        "data": {"description": "Alleen books/chapters gevonden", "done": True},
+                        "data": {"description": "Only books/chapters found", "done": True},
                     }
                 )
 
             return "\n".join(output_lines)
 
-        # Stap 3: Haal volledige content op van de gevonden pages
+        # Step 3: Retrieve full content from found pages
         if __event_emitter__:
             page_titles = ", ".join([p.get("name", "?")[:30] for p in pages[:2]])
             if len(pages) > 2:
@@ -230,80 +230,80 @@ class Tools:
                 {
                     "type": "status",
                     "data": {
-                        "description": f"Gevonden: {page_titles}",
+                        "description": f"Found: {page_titles}",
                         "done": False,
                     },
                 }
             )
 
-        # Toon welke query gebruikt werd als deze geoptimaliseerd is
+        # Show which query was used if it was optimized
         query_info = f"'{query}'"
         if optimized_query != query:
-            query_info = f"'{query}' (gezocht op: '{optimized_query}')"
+            query_info = f"'{query}' (searched for: '{optimized_query}')"
 
-        output_lines = [f"**Gevonden {len(pages)} relevante pagina(s) voor {query_info}:**\n"]
+        output_lines = [f"**Found {len(pages)} relevant page(s) for {query_info}:**\n"]
 
-        # Track of we tenminste 1 pagina succesvol ophaalden
+        # Track if we successfully retrieved at least 1 page
         success_count = 0
         permission_error = False
 
         for idx, page in enumerate(pages, 1):
             page_id = page.get("id")
-            title = page.get("name", "Geen titel")
+            title = page.get("name", "No title")
             url = page.get("url", "")
             excerpt = html.unescape(page.get("excerpt") or "")
             excerpt = re.sub(r"\s+", " ", excerpt).strip()
 
             try:
-                # Status: Toon welke pagina we ophalen
+                # Status: Show which page we're retrieving
                 if __event_emitter__:
                     await __event_emitter__(
                         {
                             "type": "status",
                             "data": {
-                                "description": f"Ophalen: {title}...",
+                                "description": f"Retrieving: {title}...",
                                 "done": False
                             },
                         }
                     )
 
-                # Haal pagina metadata op via het correcte endpoint
+                # Retrieve page metadata via the correct endpoint
                 meta = c.get(f"/pages/{page_id}", {})
 
-                # Probeer markdown content te krijgen (als beschikbaar)
+                # Try to get markdown content (if available)
                 content = meta.get("markdown", "")
 
-                # Als geen markdown, gebruik de HTML content
+                # If no markdown, use the HTML content
                 if not content:
                     content = meta.get("html", "")
                     if content:
-                        # Converteer HTML naar leesbare tekst (basis)
+                        # Convert HTML to readable text (basic)
                         content = html.unescape(content)
-                        # Strip HTML tags maar behoud line breaks
+                        # Strip HTML tags but preserve line breaks
                         content = re.sub(r'<br\s*/?>', '\n', content)
                         content = re.sub(r'<p>', '\n', content)
                         content = re.sub(r'<[^>]+>', '', content)
                         content = re.sub(r'\n\s*\n+', '\n\n', content).strip()
 
-                # Gebruik URL uit metadata als die beschikbaar is
+                # Use URL from metadata if available
                 full_url = meta.get("url") or url
 
-                # Check of we content hebben
+                # Check if we have content
                 if not content:
-                    raise ValueError("Geen content beschikbaar")
+                    raise ValueError("No content available")
 
-                # Voeg toe aan output
-                output_lines.append(f"\n---\n## Pagina {idx}: {title} (ID: {page_id})\n")
+                # Add to output
+                output_lines.append(f"\n---\n## Page {idx}: {title} (ID: {page_id})\n")
                 output_lines.append(f"🔗 [Open in BookStack]({full_url})\n")
                 output_lines.append(f"\n{content}\n")
 
-                # Emit citation met volledige content
+                # Emit citation with full content
                 if __event_emitter__:
                     await __event_emitter__(
                         {
                             "type": "citation",
                             "data": {
-                                "document": [content],  # Volledige content voor AI
+                                "document": [content],  # Full content for AI
                                 "metadata": [
                                     {
                                         "date_accessed": datetime.now().isoformat(),
@@ -321,20 +321,20 @@ class Tools:
                 success_count += 1
 
             except BookStackClientRequestFailedError as e:
-                # Specifieke BookStack API errors
+                # Specific BookStack API errors
                 error_details = f"Page ID: {page_id}, Status: {e.status_code}, Error: {e.error}"
 
                 if e.status_code == 403:
                     permission_error = True
-                    # Fallback naar excerpt als we geen permissie hebben
-                    output_lines.append(f"\n---\n## Pagina {idx}: {title} (ID: {page_id})\n")
+                    # Fallback to excerpt if we don't have permission
+                    output_lines.append(f"\n---\n## Page {idx}: {title} (ID: {page_id})\n")
                     output_lines.append(f"🔗 [Open in BookStack]({url})\n")
-                    output_lines.append(f"\n⚠️ **Geen toegang tot volledige pagina** (403 Forbidden)\n")
+                    output_lines.append(f"\n⚠️ **No access to full page** (403 Forbidden)\n")
                     output_lines.append(f"Debug: {error_details}\n")
                     if excerpt:
-                        output_lines.append(f"\n**Samenvatting:** {excerpt}\n")
+                        output_lines.append(f"\n**Summary:** {excerpt}\n")
 
-                    # Emit citation met excerpt
+                    # Emit citation with excerpt
                     if __event_emitter__:
                         await __event_emitter__(
                             {
@@ -348,7 +348,7 @@ class Tools:
                                             "url": url,
                                             "type": "bookstack_page_excerpt",
                                             "page_id": page_id,
-                                            "note": "Volledige content niet beschikbaar (API permissie)",
+                                            "note": "Full content not available (API permission)",
                                         }
                                     ],
                                     "source": {"name": title, "url": url},
@@ -356,47 +356,47 @@ class Tools:
                             }
                         )
                 elif e.status_code == 404:
-                    output_lines.append(f"\n---\n## Pagina {idx}: {title} (ID: {page_id})\n")
+                    output_lines.append(f"\n---\n## Page {idx}: {title} (ID: {page_id})\n")
                     output_lines.append(f"🔗 [Open in BookStack]({url})\n")
-                    output_lines.append(f"\n⚠️ **Pagina niet gevonden** (404 Not Found)\n")
+                    output_lines.append(f"\n⚠️ **Page not found** (404 Not Found)\n")
                     output_lines.append(f"Debug: {error_details}\n")
-                    output_lines.append(f"Mogelijk probleem: Page ID uit search komt niet overeen met API\n")
+                    output_lines.append(f"Possible issue: Page ID from search does not match API\n")
                     if excerpt:
-                        output_lines.append(f"\n**Samenvatting:** {excerpt}\n")
+                        output_lines.append(f"\n**Summary:** {excerpt}\n")
                 else:
-                    output_lines.append(f"\n---\n## Pagina {idx}: {title} (ID: {page_id})\n")
+                    output_lines.append(f"\n---\n## Page {idx}: {title} (ID: {page_id})\n")
                     output_lines.append(f"🔗 [Open in BookStack]({url})\n")
                     output_lines.append(f"\n⚠️ **API Error**\n")
                     output_lines.append(f"Debug: {error_details}\n")
                     if excerpt:
-                        output_lines.append(f"\n**Samenvatting:** {excerpt}\n")
+                        output_lines.append(f"\n**Summary:** {excerpt}\n")
 
             except Exception as e:
-                # Onverwachte errors
-                output_lines.append(f"\n---\n## Pagina {idx}: {title} (ID: {page_id})\n")
+                # Unexpected errors
+                output_lines.append(f"\n---\n## Page {idx}: {title} (ID: {page_id})\n")
                 output_lines.append(f"🔗 [Open in BookStack]({url})\n")
-                output_lines.append(f"\n⚠️ **Onverwachte fout**: {type(e).__name__}\n")
+                output_lines.append(f"\n⚠️ **Unexpected error**: {type(e).__name__}\n")
                 output_lines.append(f"Details: {str(e)}\n")
                 if excerpt:
-                    output_lines.append(f"\n**Samenvatting:** {excerpt}\n")
+                    output_lines.append(f"\n**Summary:** {excerpt}\n")
 
-        # Voeg waarschuwing toe als we permission errors hadden
+        # Add warning if we had permission errors
         if permission_error:
             output_lines.append("\n\n---\n")
-            output_lines.append("⚠️ **API Permissie Probleem Gedetecteerd**\n\n")
-            output_lines.append("De BookStack API token heeft geen permissie om volledige pagina's op te halen.\n")
-            output_lines.append("Er zijn alleen samenvattingen (excerpts) beschikbaar.\n\n")
-            output_lines.append("**Oplossing:**\n")
-            output_lines.append("1. Ga naar je BookStack profiel → API Tokens\n")
-            output_lines.append("2. Controleer de permissies van de token\n")
-            output_lines.append("3. Zorg dat de token 'View' permissies heeft voor Pages\n")
-            output_lines.append("4. Of vraag de beheerder om een token met meer permissies\n")
+            output_lines.append("⚠️ **API Permission Issue Detected**\n\n")
+            output_lines.append("The BookStack API token does not have permission to retrieve full pages.\n")
+            output_lines.append("Only summaries (excerpts) are available.\n\n")
+            output_lines.append("**Solution:**\n")
+            output_lines.append("1. Go to your BookStack profile → API Tokens\n")
+            output_lines.append("2. Check the token permissions\n")
+            output_lines.append("3. Ensure the token has 'View' permissions for Pages\n")
+            output_lines.append("4. Or ask the administrator for a token with more permissions\n")
 
         if __event_emitter__:
             if success_count > 0:
-                status_msg = f"✓ {success_count} pagina('s) succesvol opgehaald"
+                status_msg = f"✓ {success_count} page(s) successfully retrieved"
             else:
-                status_msg = "Zoeken voltooid (alleen samenvattingen beschikbaar)"
+                status_msg = "Search completed (only summaries available)"
             await __event_emitter__(
                 {
                     "type": "status",
@@ -413,32 +413,32 @@ class Tools:
         __event_emitter__: Optional[Callable[[dict], None]] = None,
     ) -> str:
         """
-        Haal pagina-inhoud op uit BookStack met bronvermelding.
+        Retrieve page content from BookStack with citation.
 
         Args:
-            page_id: ID van de pagina
-            format: Formaat van de inhoud (markdown, text, of html)
+            page_id: ID of the page
+            format: Format of the content (markdown, text, or html)
         """
         # Status update
         if __event_emitter__:
             await __event_emitter__(
                 {
                     "type": "status",
-                    "data": {"description": "Pagina ophalen...", "done": False},
+                    "data": {"description": "Retrieving page...", "done": False},
                 }
             )
 
         c = self._client()
         meta = c.get(f"/pages/{page_id}", {})
-        title = meta.get("name", "Onbekende pagina")
+        title = meta.get("name", "Unknown page")
         url = meta.get("url", "")
 
-        # Haal content op in gewenst formaat
+        # Retrieve content in desired format
         if format == "markdown":
-            # Probeer markdown uit de metadata
+            # Try markdown from metadata
             content = meta.get("markdown", "")
             if not content:
-                # Fallback naar HTML
+                # Fallback to HTML
                 content = meta.get("html", "")
                 if content:
                     content = html.unescape(content)
@@ -447,7 +447,7 @@ class Tools:
                     content = re.sub(r'<[^>]+>', '', content)
                     content = re.sub(r'\n\s*\n+', '\n\n', content).strip()
         elif format == "text":
-            # Text format: gebruik HTML en strip alle tags
+            # Text format: use HTML and strip all tags
             content = meta.get("html", "")
             if content:
                 content = html.unescape(content)
@@ -458,7 +458,7 @@ class Tools:
         else:
             raise ValueError("format must be markdown|text|html")
 
-        # Emit citation voor deze pagina
+        # Emit citation for this page
         if __event_emitter__:
             await __event_emitter__(
                 {
@@ -485,11 +485,11 @@ class Tools:
             await __event_emitter__(
                 {
                     "type": "status",
-                    "data": {"description": "Pagina geladen!", "done": True},
+                    "data": {"description": "Page loaded!", "done": True},
                 }
             )
 
-        # Formatteer output met link
+        # Format output with link
         output = f"# {title}\n\n"
         output += f"🔗 [Open in BookStack]({url})\n\n"
         output += "---\n\n"
