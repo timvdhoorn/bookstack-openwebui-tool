@@ -179,7 +179,7 @@ class Tools:
 
         # Step 1: Search for relevant pages
         c = self._client()
-        res = c.get("/search", {"query": optimized_query}).get("data", [])[:5]
+        res = c.get("/search", {"query": optimized_query}).get("data", [])[:10]
 
         if not res:
             if __event_emitter__:
