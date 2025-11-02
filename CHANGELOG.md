@@ -1,5 +1,17 @@
 # Changelog - BookStack Tool
 
+## Version 1.2.1 - 2025-11-02
+
+### 🔧 Fixed
+- **Clickable citations**: Citations now appear as clickable numbered references `[0]`, `[1]`, `[2]`, etc. in Open WebUI
+- Added citation index markers to page titles in search results
+- Fixed issue where citations appeared as `[00]` placeholders instead of interactive links
+
+### ✨ Improvements
+- Citations are now properly numbered and displayed in the response text
+- Both `search()` and `get_page()` methods include citation markers
+- Improved citation visibility in the Open WebUI interface
+
 ## Version 1.2.0 - 2025-11-02
 
 ### ✨ Improvements

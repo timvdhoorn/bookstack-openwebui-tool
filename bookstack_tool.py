@@ -2,7 +2,7 @@
 title: BookStack Tool
 author: timvdhoorn
 description: Search BookStack and automatically retrieve full page content. The AI gets direct access to complete documentation.
-version: 1.2.0
+version: 1.2.1
 requirements: requests
 """
 
@@ -49,7 +49,7 @@ class BookStackApiClient:
         return {
             "Authorization": f"Token {self.token_id}:{self.token_secret}",
             "Accept": "application/json",
-            "User-Agent": "OpenWebUI-BookStack-Tool/1.2.0",
+            "User-Agent": "OpenWebUI-BookStack-Tool/1.2.1",
         }
 
     def _api(self, endpoint: str) -> str:
@@ -245,6 +245,7 @@ class Tools:
         # Track if we successfully retrieved at least 1 page
         success_count = 0
         permission_error = False
+        citation_idx = 0  # Track citation index for numbered references
 
         for idx, page in enumerate(pages, 1):
             page_id = page.get("id")
@@ -291,8 +292,8 @@ class Tools:
                 if not content:
                     raise ValueError("No content available")
 
-                # Add to output
-                output_lines.append(f"\n---\n## Page {idx}: {title} (ID: {page_id})\n")
+                # Add to output with citation marker
+                output_lines.append(f"\n---\n## Page {idx}: {title} [{citation_idx}] (ID: {page_id})\n")
                 output_lines.append(f"🔗 [Open in BookStack]({full_url})\n")
                 output_lines.append(f"\n{content}\n")
 
@@ -318,6 +319,7 @@ class Tools:
                     )
 
                 success_count += 1
+                citation_idx += 1  # Increment citation counter
 
             except BookStackClientRequestFailedError as e:
                 # Specific BookStack API errors
@@ -326,7 +328,7 @@ class Tools:
                 if e.status_code == 403:
                     permission_error = True
                     # Fallback to excerpt if we don't have permission
-                    output_lines.append(f"\n---\n## Page {idx}: {title} (ID: {page_id})\n")
+                    output_lines.append(f"\n---\n## Page {idx}: {title} [{citation_idx}] (ID: {page_id})\n")
                     output_lines.append(f"🔗 [Open in BookStack]({url})\n")
                     output_lines.append(f"\n⚠️ **No access to full page** (403 Forbidden)\n")
                     output_lines.append(f"Debug: {error_details}\n")
@@ -354,6 +356,7 @@ class Tools:
                                 },
                             }
                         )
+                    citation_idx += 1  # Increment citation counter
                 elif e.status_code == 404:
                     output_lines.append(f"\n---\n## Page {idx}: {title} (ID: {page_id})\n")
                     output_lines.append(f"🔗 [Open in BookStack]({url})\n")
@@ -488,8 +491,8 @@ class Tools:
                 }
             )
 
-        # Format output with link
-        output = f"# {title}\n\n"
+        # Format output with link and citation marker
+        output = f"# {title} [0]\n\n"
         output += f"🔗 [Open in BookStack]({url})\n\n"
         output += "---\n\n"
         output += content
